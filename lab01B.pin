@@ -1,0 +1,25 @@
+z2 SW[4] PIN_AB27 
+y2 SW[5] PIN_AC26 
+x2 SW[6] PIN_AD26 
+w2 SW[7] PIN_AB26 
+
+z3 SW[8] PIN_AC25 
+y3 SW[9] PIN_AB25 
+x3 SW[10] PIN_AC24
+w3 SW[11] PIN_AB24
+
+HEX1[0] PIN_M24 Seven Segment Digit 1[0] Depending on JP7
+HEX1[1] PIN_Y22 Seven Segment Digit 1[1] Depending on JP7
+HEX1[2] PIN_W21 Seven Segment Digit 1[2] Depending on JP7
+HEX1[3] PIN_W22 Seven Segment Digit 1[3] Depending on JP7
+HEX1[4] PIN_W25 Seven Segment Digit 1[4] Depending on JP7
+HEX1[5] PIN_U23 Seven Segment Digit 1[5] Depending on JP7
+HEX1[6] PIN_U24 Seven Segment Digit 1[6] Depending on JP7
+
+HEX2[0] PIN_AA25 Seven Segment Digit 2[0] Depending on JP7
+HEX2[1] PIN_AA26 Seven Segment Digit 2[1] Depending on JP7
+HEX2[2] PIN_Y25 Seven Segment Digit 2[2] Depending on JP7
+HEX2[3] PIN_W26 Seven Segment Digit 2[3] Depending on JP7
+HEX2[4] PIN_Y26 Seven Segment Digit 2[4] Depending on JP7
+HEX2[5] PIN_W27 Seven Segment Digit 2[5] Depending on JP7
+HEX2[6] PIN_W28 Seven Segment Digit 2[6] Depending on JP7
