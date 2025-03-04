@@ -1,8 +1,0 @@
-
-	a3 <= (x3 and not y3 and not z3) or (w3 and x3 and not y3) or (not w3 and not x3 and not y3 and z3 ) or ( w3 and not x3 and y3 and z3 );
-	b3 <= (w3 and y3 and z3) or (w3 and x3 and y3) or (x3 and y3 and not z3) or (w3 and x3 and not z3) or ( not w3 and x3 and not z3);
-	c3 <= ( not w3 and not x3 and y3 and not z3) or ( w3 and x3 and not z3) or ( w3 and x3 and y3);
-	d3 <= ( not x3 and not y3 and z3) or ( not w3 and x3 and not y3 and not z) or ( x and y and z) or ( w3 and not x3 and y3 and not z3);
-	e3 <= (not w3 and z3) or (not w3 and x3 and not y3) or (not x3 and not y3 and z3);
-	f3 <= (not w3 and not x3 and not z3) or (not w3 and not x3 and y3) or (not w3 and y3 and z3) or (w3 and x3 and not y3);
-	g3 <= (not w3 and not x3 and not y3) or (not w3 and z3 and y3 and z3);
