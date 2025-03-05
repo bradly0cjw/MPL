@@ -1,0 +1,16 @@
+.Xil/
+*.cache/
+*.hw/
+*.ip_user_files/
+*.sim/
+vivado*.*
+gitmemo.md
+*.runs/
+!*.runs/**/*.bit
+HW2.7z
+!*.srcs/**/*.xdc
+.idea
+db/
+incremental_db/
+output_files/
+simulation/
