@@ -1,0 +1,18 @@
+LIBRARY IEEE;
+USE IEEE STD_LOGIC_1164.all;
+USE work.LAB2B_package.all;
+
+ENTITY LAB2B IS
+PORT(
+	A: in std_logic_vector(7 downto 0);
+	B: in std_logic_vector(7 downto 0);
+	S: in std_logic_vector(7 downto 0);
+	);
+END LAB2B;
+
+ARCHITECTURE func OF LAB2B IS
+	SIGNAL C: in std_logic_vector(7 downto 0);
+	
+BEGIN
+
+END func;
