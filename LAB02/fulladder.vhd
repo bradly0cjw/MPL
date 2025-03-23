@@ -3,7 +3,7 @@ USE IEEE.STD_LOGIC_1164.all;
 
 ENTITY fulladd IS
 PORT(
-	cin,x,y : in std_logic;
+	Cin,x,y : in std_logic;
 	s,Cout : out std_logic);
 END fulladd;
 

@@ -8,7 +8,7 @@ PORT(
 	B: in std_logic_vector(7 downto 0);
 	-- S: out std_logic_vector(7 downto 0);
 	hexo: out std_logic_vector(13 downto 0);
-	n: in std_logic;
+	-- n: in std_logic;
 	Overflow: out std_logic	);
 
 END LAB2B_main;
@@ -18,8 +18,10 @@ ARCHITECTURE func OF LAB2B_main IS
 	SIGNAL C: std_logic_vector(8 downto 0);
 	SIGNAL S: std_logic_vector(7 downto 0);
 	SIGNAL F: std_logic_vector(7 downto 0);
+	SIGNAL n: std_logic;
 
 BEGIN
+	n <= '1';
 	stage0: fulladd port map (C(0) or n,n xor A(0),B(0),S(0),C(1));
 	stage1: fulladd port map (C(1),n xor A(1),B(1),S(1),C(2));
 	stage2: fulladd port map (C(2),n xor A(2),B(2),S(2),C(3));
