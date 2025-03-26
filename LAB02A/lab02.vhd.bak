@@ -1,0 +1,11 @@
+LIBRARY IEEE;
+USE IEEE.STD_LOGIC_1164.all;
+
+entity adder is 
+port (
+	a : in std_logic_vecter( 7 downto 0);
+	b : in std_logic_vecter( 7 downto 0);
+	s : out std_logic_vecter( 7 downto 0));
+end adder;
+
+architecture f of adder is
