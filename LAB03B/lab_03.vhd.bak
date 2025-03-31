@@ -1,0 +1,21 @@
+library ieee;
+use ieee.std_logic_1164. all;
+use work. LAB03_package. all;
+
+entity LAB03 is
+	port( A : in std_logic_vector (0 to 7);
+		B : in std_logic_vector (0 to 7);
+		a0, b0, co, do, e0, fo, g0 : out std_logic;
+		a1, b1, c1, d1, e1, f1, g1 : out std_logic;
+		overflow : out std_logic);
+end LAB03;
+
+architecture structure of LAB03 is
+	signal c :std_logic_vector ( 7 downto 0)
+	signal s :std_logic_vector ( 7 downto 0)
+	
+begin
+	stage0: fulladd port map(A(0), B(0), '0', s(0), c(1));
+	stagel: fulladd port map(A(1), B(1), c(1), s(1), c(2));
+	stage2: fulladd port map(A(2), B(2), c(2), s(2), c(3));
+	stage3: fulladd port map(A(3), B(3), c(3), s(3), c(4));
