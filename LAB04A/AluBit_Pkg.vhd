@@ -1,0 +1,113 @@
+LIBRARY ieee;
+USE ieee.std_logic_1164.all;
+
+--=============================================================================
+-- Package Declaration: 定義 1-bit ALU 邏輯的型別與函數介面
+--=============================================================================
+PACKAGE AluBit_Pkg IS
+
+    -- 定義一個紀錄 (record) 型別來存放 1-bit ALU 函數的多個輸出
+    TYPE type_OneBitAluResult IS RECORD
+        res  : STD_LOGIC; -- 結果位元 (Result bit)
+        s    : STD_LOGIC; -- 設定位元 (Set bit, 用於 SLT 的原始符號位元)
+        cout : STD_LOGIC; -- 進位輸出位元 (Carry Out bit)
+    END RECORD type_OneBitAluResult;
+
+    -- 執行 1-bit ALU 操作的函數
+    FUNCTION calculate_one_bit_alu (
+        A       : IN STD_LOGIC;                     -- 輸入 A
+        B       : IN STD_LOGIC;                     -- 輸入 B
+        less    : IN STD_LOGIC;                     -- 'less' 輸入 (用於 MIPS 風格 SLT 的 LSB)
+        carryin : IN STD_LOGIC;                     -- 進位輸入
+        opcode  : IN STD_LOGIC_VECTOR(3 DOWNTO 0) -- 操作碼
+    ) RETURN type_OneBitAluResult;                 -- 返回包含多個輸出的紀錄
+
+END PACKAGE AluBit_Pkg;
+
+--=============================================================================
+-- Package Body: 1-bit ALU 函數的具體實作
+--=============================================================================
+PACKAGE BODY AluBit_Pkg IS
+
+    FUNCTION calculate_one_bit_alu (
+        A       : IN STD_LOGIC;
+        B       : IN STD_LOGIC;
+        less    : IN STD_LOGIC;
+        carryin : IN STD_LOGIC;
+        opcode  : IN STD_LOGIC_VECTOR(3 DOWNTO 0)
+    ) RETURN type_OneBitAluResult IS
+
+        VARIABLE v_result       : STD_LOGIC;
+        VARIABLE v_set          : STD_LOGIC; -- 代表算術運算的原始加總位元
+        VARIABLE v_carryout     : STD_LOGIC;
+        VARIABLE v_b_inverted   : STD_LOGIC;
+        VARIABLE v_adder_b_input: STD_LOGIC;
+        VARIABLE v_adder_cin    : STD_LOGIC;
+        VARIABLE v_adder_sum    : STD_LOGIC;
+        VARIABLE v_adder_carry  : STD_LOGIC;
+        VARIABLE v_and_result   : STD_LOGIC;
+        VARIABLE v_or_result    : STD_LOGIC;
+        VARIABLE v_nor_result   : STD_LOGIC;
+        VARIABLE v_output_record: type_OneBitAluResult;
+
+    BEGIN
+        -- 決定加法器的 B 輸入 (SUB/SLT 時反相)
+        v_b_inverted    := NOT B;
+        IF (opcode = "0110" OR opcode = "0111") THEN
+            v_adder_b_input := v_b_inverted;
+        ELSE
+            v_adder_b_input := B;
+        END IF;
+
+        -- 決定加法器的進位輸入 (SUB/SLT 時強制為 '1')
+        IF (opcode = "0110" OR opcode = "0111") THEN
+            v_adder_cin := '1';
+        ELSE
+            v_adder_cin := carryin;
+        END IF;
+
+        -- 1. AND 運算
+        v_and_result := A AND B;
+        -- 2. OR 運算
+        v_or_result  := A OR B;
+        -- 3. 全加器邏輯
+        v_adder_sum   := (A XOR v_adder_b_input) XOR v_adder_cin;
+        v_adder_carry := (A AND v_adder_b_input) OR ((A XOR v_adder_b_input) AND v_adder_cin);
+        -- 4. NOR 運算
+        v_nor_result := A NOR B;
+
+        -- 5. 計算 'Set' 輸出 (代表算術運算的原始加總位元)
+        --    頂層模組需要這個位元來判斷 SLT 的符號
+        IF (opcode = "0010" OR opcode = "0110" OR opcode = "0111") THEN -- ADD, SUB, SLT
+            v_set := v_adder_sum;
+        ELSE
+            v_set := '0'; -- 邏輯運算時 set 為 '0'
+        END IF;
+
+        -- 6. 根據 Opcode 選擇初步的 'Result' 位元輸出
+        CASE opcode IS
+            WHEN "0000" => v_result := v_and_result; -- AND
+            WHEN "0001" => v_result := v_or_result;  -- OR
+            WHEN "0010" => v_result := v_adder_sum;  -- ADD
+            WHEN "0110" => v_result := v_adder_sum;  -- SUB
+            WHEN "0111" => v_result := less;         -- SLT: 結果直接等於 'less' 輸入 (MIPS 風格)
+            WHEN "1100" => v_result := v_nor_result; -- NOR
+            WHEN OTHERS => v_result := '0';          -- 預設
+        END CASE;
+
+        -- 7. 計算最終的進位輸出 (僅算術運算產生)
+        IF (opcode = "0010" OR opcode = "0110" OR opcode = "0111") THEN
+            v_carryout := v_adder_carry;
+        ELSE
+            v_carryout := '0';
+        END IF;
+
+        -- 8. 將所有計算結果填入返回用的紀錄 (record)
+        v_output_record.res  := v_result;
+        v_output_record.s    := v_set;
+        v_output_record.cout := v_carryout;
+
+        RETURN v_output_record;
+    END FUNCTION calculate_one_bit_alu;
+
+END PACKAGE BODY AluBit_Pkg;
