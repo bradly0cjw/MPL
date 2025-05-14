@@ -3,7 +3,7 @@ use ieee.std_logic_1164.all;
 use ieee.std_logic_unsigned.all;
 -- 8bit left shift register with parallel load and reset
 entity lab05a is
-generic (N : integer := 12);
+generic (N : integer := 8);
     port(
         clk: in std_logic;
         clear: in std_logic;
