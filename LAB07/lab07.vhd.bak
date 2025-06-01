@@ -1,0 +1,246 @@
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all; -- For signed/unsigned, resize
+
+-- Assuming lab05a and FSM are compiled into the 'work' library or a specific library
+-- For this example, let's assume 'work'
+-- use work.lab05a.all; -- If lab05a is in work library
+-- use work.FSM.all;    -- If FSM is in work library
+
+-- Component declarations (copy from their respective files if not in a package)
+component lab05a is
+    generic (N : integer := 8); -- Default, will be overridden
+    port(
+        clk    : in  std_logic;
+        clear  : in  std_logic;
+        load   : in  std_logic;
+        lr_sel : in  std_logic; -- '1' for left, '0' for right (as per lab05a internal logic)
+        di     : in  std_logic_vector(N-1 downto 0);
+        sdi    : in  std_logic;
+        qo     : out std_logic_vector(N-1 downto 0);
+        bc     : in  std_logic -- Unused in lab05a logic, but present
+    );
+end component lab05a;
+
+component FSM is
+    port (
+        c1k    : in  std_logic;
+        reset  : in  std_logic;
+        w      : in  std_logic;
+        output : out std_logic_vector(2 downto 0) -- FSM state
+    );
+end component FSM;
+
+
+entity Divider is
+    port(
+        clk        : in  std_logic;
+        clear      : in  std_logic; -- Master reset
+        Divisor    : in  std_logic_vector(7 downto 0);
+        Dividend   : in  std_logic_vector(7 downto 0);
+        Remainder  : buffer std_logic_vector(16 downto 0) -- Output: [Done_Flag, Quotient, Actual_Remainder]
+    );
+end entity Divider;
+
+architecture logicfunc of Divider is
+
+    -- FSM States (matching FSM.vhd output)
+    constant S0_ST : std_logic_vector(2 downto 0) := "000"; -- Init
+    constant S1_ST : std_logic_vector(2 downto 0) := "001"; -- Subtract P = P - D
+    constant S2A_ST: std_logic_vector(2 downto 0) := "010"; -- Rem >= 0, Q(0) = 1
+    constant S2B_ST: std_logic_vector(2 downto 0) := "011"; -- Rem < 0, Restore P, Q(0) = 0
+    constant S3_ST : std_logic_vector(2 downto 0) := "100"; -- Shift D right, check count
+    constant S4_ST : std_logic_vector(2 downto 0) := "101"; -- Done
+
+    -- Internal Signals
+    signal fsm_state_q : std_logic_vector(2 downto 0);
+    signal w_to_fsm    : std_logic;
+
+    -- Register P (Remainder Accumulator) - 16 bits
+    signal p_reg_q  : std_logic_vector(15 downto 0);
+    signal p_reg_di : std_logic_vector(15 downto 0);
+    signal p_load   : std_logic;
+
+    -- Register D (Divisor) - 16 bits
+    signal d_reg_q  : std_logic_vector(15 downto 0);
+    signal d_reg_di : std_logic_vector(15 downto 0);
+    signal d_load   : std_logic;
+
+    -- Register Q (Quotient) - 8 bits
+    signal q_reg_q  : std_logic_vector(7 downto 0);
+    signal q_reg_di : std_logic_vector(7 downto 0);
+    signal q_load   : std_logic;
+
+    -- ALU signals
+    signal alu_p_minus_d : std_logic_vector(15 downto 0);
+    signal p_msb_after_sub : std_logic; -- Sign bit after P-D
+
+    -- Iteration Counter (0 to 7 for 8 iterations)
+    signal count_q      : unsigned(2 downto 0); -- Max 7 for 8 iterations
+    signal count_reset  : std_logic;
+    signal count_enable : std_logic;
+    constant MAX_ITERATIONS : unsigned(2 downto 0) := "111"; -- 7 (0 to 7 is 8 iterations)
+
+begin
+
+    -- Instantiate FSM
+    FSM_inst : FSM
+        port map (
+            c1k    => clk,
+            reset  => clear,
+            w      => w_to_fsm,
+            output => fsm_state_q
+        );
+
+    -- Instantiate Register P (16-bit) using lab05a
+    P_Register : lab05a
+        generic map (N => 16)
+        port map (
+            clk    => clk,
+            clear  => clear,      -- Master reset clears register
+            load   => p_load,
+            lr_sel => '0',        -- Not used for shifting, using parallel load
+            di     => p_reg_di,
+            sdi    => '0',        -- Not used
+            qo     => p_reg_q,
+        );
+
+    -- Instantiate Register D (16-bit) using lab05a
+    D_Register : lab05a
+        generic map (N => 16)
+        port map (
+            clk    => clk,
+            clear  => clear,      -- Master reset clears register
+            load   => d_load,
+            lr_sel => '0',        -- Not used for shifting, using parallel load
+            di     => d_reg_di,
+            sdi    => '0',        -- Not used
+            qo     => d_reg_q,
+        );
+
+    -- Instantiate Register Q (8-bit) using lab05a
+    Q_Register : lab05a
+        generic map (N => 8)
+        port map (
+            clk    => clk,
+            clear  => clear,      -- Master reset clears register
+            load   => q_load,
+            lr_sel => '0',        -- Not used for shifting, using parallel load
+            di     => q_reg_di,
+            sdi    => '0',        -- Not used
+            qo     => q_reg_q,
+        );
+
+    -- ALU: P - D
+    alu_p_minus_d <= std_logic_vector(signed(p_reg_q) - signed(d_reg_q));
+    p_msb_after_sub <= alu_p_minus_d(15); -- MSB indicates sign (1 for negative)
+
+    -- Iteration Counter Logic
+    process(clk, clear)
+    begin
+        if clear = '1' then
+            count_q <= (others => '0');
+        elsif rising_edge(clk) then
+            if count_reset = '1' then
+                count_q <= (others => '0');
+            elsif count_enable = '1' then
+                count_q <= count_q + 1;
+            end if;
+        end if;
+    end process;
+
+    -- Control Logic Process (combinational)
+    process(fsm_state_q, p_reg_q, d_reg_q, q_reg_q, alu_p_minus_d, p_msb_after_sub, count_q, Dividend, Divisor)
+    begin
+        -- Default assignments (no load, no count, w=0)
+        p_load   <= '0';
+        d_load   <= '0';
+        q_load   <= '0';
+        
+        p_reg_di <= p_reg_q; -- Hold current value by default
+        d_reg_di <= d_reg_q; -- Hold current value by default
+        q_reg_di <= q_reg_q; -- Hold current value by default
+
+        count_reset  <= '0';
+        count_enable <= '0';
+        w_to_fsm     <= '0';
+
+        case fsm_state_q is
+            when S0_ST => -- Initialize
+                p_load   <= '1';
+                p_reg_di <= "00000000" & Dividend; -- Load dividend into lower 8 bits of P
+                
+                d_load   <= '1';
+                d_reg_di <= Divisor & "00000000"; -- Load divisor into upper 8 bits of D
+                
+                q_load   <= '1';
+                q_reg_di <= (others => '0');    -- Clear Q
+                
+                count_reset <= '1';             -- Reset counter
+                w_to_fsm    <= '1';             -- Go to S1
+
+            when S1_ST => -- Subtract: P_trial = P - D
+                p_load   <= '1';
+                p_reg_di <= alu_p_minus_d;      -- Store P-D into P
+                
+                w_to_fsm <= p_msb_after_sub;    -- if MSB is 1 (negative), w=1 -> S2B
+                                                -- if MSB is 0 (positive), w=0 -> S2A
+            when S2A_ST => -- Remainder_trial >= 0
+                -- P already holds P-D from S1, which is correct new P
+                q_load   <= '1';
+                q_reg_di <= q_reg_q(6 downto 0) & '1'; -- Shift Q left, LSB = 1
+                
+                w_to_fsm <= '0'; -- Unconditional transition to S3 in FSM logic
+
+            when S2B_ST => -- Remainder_trial < 0
+                p_load   <= '1';
+                -- P currently holds P_old - D. We need to restore P_old.
+                -- P_old = (P_old - D) + D. So, current p_reg_q + d_reg_q
+                p_reg_di <= std_logic_vector(signed(p_reg_q) + signed(d_reg_q)); -- Restore P
+                
+                q_load   <= '1';
+                q_reg_di <= q_reg_q(6 downto 0) & '0'; -- Shift Q left, LSB = 0
+                
+                w_to_fsm <= '0'; -- Unconditional transition to S3 in FSM logic
+
+            when S3_ST => -- Shift D right, Check iterations
+                d_load   <= '1';
+                d_reg_di <= '0' & d_reg_q(15 downto 1); -- Logical shift right D
+                
+                count_enable <= '1'; -- Increment counter
+                
+                if count_q = MAX_ITERATIONS then
+                    w_to_fsm <= '1'; -- Done with iterations, go to S4
+                else
+                    w_to_fsm <= '0'; -- Not done, loop back to S1 (FSM handles S3->S1 on w=0)
+                end if;
+
+            when S4_ST => -- Done
+                -- Hold all values, no loads, no count
+                w_to_fsm <= '0'; -- Stay in S4 (FSM S4 has no transitions)
+
+            when others => -- Should not happen
+                p_load   <= '0';
+                d_load   <= '0';
+                q_load   <= '0';
+                count_reset <= '1';
+                w_to_fsm    <= '0';
+        end case;
+    end process;
+
+    -- Assign final outputs to the 17-bit Remainder port
+    -- Remainder(16) = Done flag
+    -- Remainder(15 downto 8) = Quotient
+    -- Remainder(7 downto 0) = Actual Remainder
+    process(fsm_state_q, q_reg_q, p_reg_q)
+    begin
+        if fsm_state_q = S4_ST then
+            Remainder(16) <= '1'; -- Done
+        else
+            Remainder(16) <= '0'; -- Not done
+        end if;
+        Remainder(15 downto 8) <= q_reg_q;
+        Remainder(7 downto 0)  <= p_reg_q(7 downto 0); -- Final remainder is in lower 8 bits of P
+    end process;
+
+end architecture logicfunc;
