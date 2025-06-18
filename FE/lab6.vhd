@@ -1,0 +1,67 @@
+library ieee;
+use ieee.std_logic_1164.all;
+-- use ieee.std_logic_unsigned.all; -- Not strictly needed if not doing arithmetic in FSM directly
+use ieee.numeric_std.all;
+
+entity FSM is
+    port (
+        clk    : in  std_logic;
+        reset  : in  std_logic;
+        w      : in  std_logic; -- Input condition for state transitions
+        output : out std_logic_vector(2 downto 0) -- Current state output
+    );
+end entity FSM;
+
+architecture logicFun of FSM is
+    type state_type is (S0, S1, S2A, S2B, S3, S4); -- For readability if desired, but SLV is used
+    signal current_state, next_state: std_logic_vector(2 downto 0) := "000";
+begin
+
+    -- State Register
+    process (clk, reset)
+    begin
+        if reset = '1' then
+            current_state <= "000"; -- S0
+        elsif rising_edge(clk) then
+            current_state <= next_state;
+        end if;
+    end process;
+
+    -- Next State Logic (Combinational)
+    process (current_state, w)
+    begin
+        next_state <= current_state; -- Default: stay in current state
+        case current_state is
+            when "000" =>  -- S0: Init
+                if w = '1' then
+                    next_state <= "001"; -- To S1
+                else
+                    next_state <= "000"; -- Stay in S0
+                end if;
+            when "001" => -- S1: Subtract
+                if w = '1' then -- MSB of (R-D) is '1' (negative result)
+                    next_state <= "011"; -- To S2B (Restore)
+                else            -- MSB of (R-D) is '0' (non-negative result)
+                    next_state <= "010"; -- To S2A (Successful sub)
+                end if;
+            when "010" => -- S2A: Successful subtraction
+                next_state <= "100"; -- To S3 (Shift)
+            when "011" => -- S2B: Restore
+                next_state <= "100"; -- To S3 (Shift)
+            when "100" => -- S3: Shift
+                if w = '1' then -- count = 7 (done 8 iterations)
+                    next_state <= "101"; -- To S4 (Done)
+                else            -- count < 7
+                    next_state <= "001"; -- Back to S1 (Subtract)
+                end if;
+            when "101" => -- S4: Done
+                next_state <= "101"; -- Stay in S4 until clear
+            when others =>
+                next_state <= "000"; -- Default to S0
+        end case;
+    end process;
+
+    -- Output Logic (Moore Machine: output depends only on current_state)
+    output <= current_state;
+
+end architecture logicFun;
