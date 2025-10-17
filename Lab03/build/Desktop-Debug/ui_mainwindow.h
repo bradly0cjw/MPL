@@ -16,7 +16,10 @@
 #include <QtWidgets/QLineEdit>
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QMenuBar>
+#include <QtWidgets/QProgressBar>
 #include <QtWidgets/QPushButton>
+#include <QtWidgets/QSlider>
+#include <QtWidgets/QSpinBox>
 #include <QtWidgets/QStatusBar>
 #include <QtWidgets/QWidget>
 
@@ -37,6 +40,9 @@ public:
     QLabel *led2_pics;
     QLabel *led3_pics;
     QLabel *led4_pics;
+    QSlider *horizontalSlider;
+    QProgressBar *progressBar;
+    QSpinBox *spinBox;
     QMenuBar *menubar;
     QStatusBar *statusbar;
 
@@ -49,7 +55,7 @@ public:
         centralwidget->setObjectName(QString::fromUtf8("centralwidget"));
         shine_Button = new QPushButton(centralwidget);
         shine_Button->setObjectName(QString::fromUtf8("shine_Button"));
-        shine_Button->setGeometry(QRect(410, 150, 91, 22));
+        shine_Button->setGeometry(QRect(510, 220, 91, 22));
         blink_Button = new QPushButton(centralwidget);
         blink_Button->setObjectName(QString::fromUtf8("blink_Button"));
         blink_Button->setGeometry(QRect(410, 220, 91, 22));
@@ -84,6 +90,17 @@ public:
         led4_pics->setObjectName(QString::fromUtf8("led4_pics"));
         led4_pics->setGeometry(QRect(230, 210, 21, 21));
         led4_pics->setPixmap(QPixmap(QString::fromUtf8("off.png")));
+        horizontalSlider = new QSlider(centralwidget);
+        horizontalSlider->setObjectName(QString::fromUtf8("horizontalSlider"));
+        horizontalSlider->setGeometry(QRect(410, 110, 160, 16));
+        horizontalSlider->setOrientation(Qt::Horizontal);
+        progressBar = new QProgressBar(centralwidget);
+        progressBar->setObjectName(QString::fromUtf8("progressBar"));
+        progressBar->setGeometry(QRect(410, 140, 118, 23));
+        progressBar->setValue(24);
+        spinBox = new QSpinBox(centralwidget);
+        spinBox->setObjectName(QString::fromUtf8("spinBox"));
+        spinBox->setGeometry(QRect(530, 140, 43, 23));
         MainWindow->setCentralWidget(centralwidget);
         menubar = new QMenuBar(MainWindow);
         menubar->setObjectName(QString::fromUtf8("menubar"));
@@ -94,6 +111,9 @@ public:
         MainWindow->setStatusBar(statusbar);
 
         retranslateUi(MainWindow);
+        QObject::connect(horizontalSlider, SIGNAL(valueChanged(int)), progressBar, SLOT(setValue(int)));
+        QObject::connect(spinBox, SIGNAL(valueChanged(int)), horizontalSlider, SLOT(setValue(int)));
+        QObject::connect(horizontalSlider, SIGNAL(valueChanged(int)), spinBox, SLOT(setValue(int)));
 
         QMetaObject::connectSlotsByName(MainWindow);
     } // setupUi

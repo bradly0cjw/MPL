@@ -60,7 +60,8 @@ private:
     void update_led_indicator(int gpio, bool on);
 
     // Functions to be run in a separate thread
-    void perform_shine(int count);
+    void perform_shine(int count, int delay_us);
     void perform_blink(QList<int> gpios, int count);
+
 };
 #endif // MAINWINDOW_H
